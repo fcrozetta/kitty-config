@@ -7,8 +7,10 @@ distributed via Homebrew. macOS only.
 
 Install kitty via the
 [official installer](https://sw.kovidgoyal.net/kitty/binary/). This formula
-does **not** install kitty itself — only the configuration and its
-non-kitty dependencies (currently: FiraCode Nerd Font).
+does **not** install kitty itself.
+
+Other dependencies (fonts) are installed by `kitty-config-setup`, not by
+the formula — see [Dependencies](#dependencies) below.
 
 ## Installation
 
@@ -63,14 +65,15 @@ block (managed by `kitten themes`), your own files in `themes/` or
 
 ### Dependencies
 
-Installed automatically by `brew install`.
+The formula itself only declares `depends_on :macos`. Cask deps are
+installed by `kitty-config-setup` at user level (`brew install --cask
+…`), because declaring casks in a formula is unreliable across
+Homebrew versions.
 
-| Tool                       | Purpose                |
-| -------------------------- | ---------------------- |
-| font-fira-code-nerd-font   | Default font           |
-
-kitty itself is installed separately via the
-[official installer](https://sw.kovidgoyal.net/kitty/binary/).
+| Tool                       | Purpose                | Installed by         |
+| -------------------------- | ---------------------- | -------------------- |
+| kitty                      | Terminal emulator      | you (manually)       |
+| font-fira-code-nerd-font   | Default font           | `kitty-config-setup` |
 
 ## Layout
 

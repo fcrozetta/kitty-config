@@ -11,24 +11,19 @@ REPO_URL="${3:?Usage: $0 <version> <sha256> <repo-url>}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEPS_FILE="$SCRIPT_DIR/../deps/brew.txt"
 
-# Generate depends_on lines from brew.txt
-# Lines starting with "cask:" become `depends_on cask: "name"` inside an
-#   `on_macos do` block (casks only exist on macOS).
+# Generate depends_on lines from brew.txt.
 # Plain lines become top-level `depends_on "name"`.
+# Lines starting with "cask:" are SKIPPED here — setup.sh installs them
+# at user level via `brew install --cask`. Declaring casks in the
+# formula is unreliable across Homebrew versions.
 # Blank lines and comments (#) are skipped.
 DEPENDS_TOP=""
-DEPENDS_MACOS=""
-HAS_CASK=false
 while IFS= read -r pkg || [ -n "$pkg" ]; do
   pkg="$(echo "$pkg" | sed 's/[[:space:]]*#.*$//' | xargs)"
   [ -z "$pkg" ] && continue
   case "$pkg" in
     cask:*)
-      name="${pkg#cask:}"
-      DEPENDS_MACOS="${DEPENDS_MACOS}    depends_on cask: \"${name}\"
-"
-      HAS_CASK=true
-      ;;
+      ;;  # handled by setup.sh, not the formula
     *)
       DEPENDS_TOP="${DEPENDS_TOP}  depends_on \"${pkg}\"
 "
@@ -41,12 +36,6 @@ DEPS_SECTION="  depends_on :macos
 if [ -n "$DEPENDS_TOP" ]; then
   DEPS_SECTION="${DEPS_SECTION}
 ${DEPENDS_TOP}"
-fi
-if [ "$HAS_CASK" = "true" ]; then
-  DEPS_SECTION="${DEPS_SECTION}
-  on_macos do
-${DEPENDS_MACOS}  end
-"
 fi
 
 cat <<EOF

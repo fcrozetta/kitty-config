@@ -1,1 +1,11 @@
+# Dependencies for kitty-config.
+#
+# Syntax:
+#   plain-name      -> depends_on "name" in the formula
+#   cask:NAME       -> brew install --cask NAME, run by kitty-config-setup
+#
+# Casks are NOT declared in the formula because depends_on cask: is
+# unreliable across Homebrew versions. setup.sh installs them at user
+# level instead, which works on any system that has brew.
+
 cask:font-fira-code-nerd-font

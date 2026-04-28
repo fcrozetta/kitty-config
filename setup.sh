@@ -16,6 +16,35 @@ echo "==> kitty-config setup"
 echo "    pkgshare:   $SCRIPT_DIR"
 echo "    user dir:   $KITTY_DIR"
 
+# --- Install cask deps listed in deps/brew.txt ---
+install_casks() {
+  local deps_file="$SCRIPT_DIR/deps/brew.txt"
+  [ -f "$deps_file" ] || return 0
+
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "WARNING: brew not found; skipping cask deps"
+    return 0
+  fi
+
+  while IFS= read -r pkg || [ -n "$pkg" ]; do
+    pkg="$(echo "$pkg" | sed 's/[[:space:]]*#.*$//' | xargs)"
+    [ -z "$pkg" ] && continue
+    case "$pkg" in
+      cask:*)
+        local name="${pkg#cask:}"
+        if brew list --cask --versions "$name" >/dev/null 2>&1; then
+          echo "==> Cask already installed: $name"
+        else
+          echo "==> Installing cask: $name"
+          brew install --cask "$name"
+        fi
+        ;;
+    esac
+  done < "$deps_file"
+}
+
+install_casks
+
 mkdir -p "$KITTY_DIR/themes" "$KITTY_DIR/kittens"
 
 # --- Sync themes/ and kittens/: per-file symlinks into pkgshare ---
