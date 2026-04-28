@@ -1,7 +1,14 @@
 # kitty-config
 
 Personal [kitty](https://sw.kovidgoyal.net/kitty/) terminal configuration,
-distributed via Homebrew. macOS-first.
+distributed via Homebrew. macOS only.
+
+## Prerequisite
+
+Install kitty via the
+[official installer](https://sw.kovidgoyal.net/kitty/binary/). This formula
+does **not** install kitty itself — only the configuration and its
+non-kitty dependencies (currently: FiraCode Nerd Font).
 
 ## Installation
 
@@ -60,8 +67,10 @@ Installed automatically by `brew install`.
 
 | Tool                       | Purpose                |
 | -------------------------- | ---------------------- |
-| kitty                      | Terminal emulator      |
 | font-fira-code-nerd-font   | Default font           |
+
+kitty itself is installed separately via the
+[official installer](https://sw.kovidgoyal.net/kitty/binary/).
 
 ## Layout
 

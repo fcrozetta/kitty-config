@@ -12,25 +12,42 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEPS_FILE="$SCRIPT_DIR/../deps/brew.txt"
 
 # Generate depends_on lines from brew.txt
-# Lines starting with "cask:" become `depends_on cask: "name"`.
-# Plain lines become `depends_on "name"`.
+# Lines starting with "cask:" become `depends_on cask: "name"` inside an
+#   `on_macos do` block (casks only exist on macOS).
+# Plain lines become top-level `depends_on "name"`.
 # Blank lines and comments (#) are skipped.
-DEPENDS=""
+DEPENDS_TOP=""
+DEPENDS_MACOS=""
+HAS_CASK=false
 while IFS= read -r pkg || [ -n "$pkg" ]; do
   pkg="$(echo "$pkg" | sed 's/[[:space:]]*#.*$//' | xargs)"
   [ -z "$pkg" ] && continue
   case "$pkg" in
     cask:*)
       name="${pkg#cask:}"
-      DEPENDS="${DEPENDS}  depends_on cask: \"${name}\"
+      DEPENDS_MACOS="${DEPENDS_MACOS}    depends_on cask: \"${name}\"
 "
+      HAS_CASK=true
       ;;
     *)
-      DEPENDS="${DEPENDS}  depends_on \"${pkg}\"
+      DEPENDS_TOP="${DEPENDS_TOP}  depends_on \"${pkg}\"
 "
       ;;
   esac
 done < "$DEPS_FILE"
+
+DEPS_SECTION="  depends_on :macos
+"
+if [ -n "$DEPENDS_TOP" ]; then
+  DEPS_SECTION="${DEPS_SECTION}
+${DEPENDS_TOP}"
+fi
+if [ "$HAS_CASK" = "true" ]; then
+  DEPS_SECTION="${DEPS_SECTION}
+  on_macos do
+${DEPENDS_MACOS}  end
+"
+fi
 
 cat <<EOF
 class KittyConfig < Formula
@@ -40,7 +57,7 @@ class KittyConfig < Formula
   sha256 "${SHA256}"
   license "MIT"
 
-${DEPENDS}
+${DEPS_SECTION}
   def install
     bin.install "setup.sh" => "kitty-config-setup"
     bin.install "scripts/uninstall.sh" => "kitty-config-uninstall"
