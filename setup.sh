@@ -75,9 +75,9 @@ install_casks() {
 
 install_casks
 
-mkdir -p "$KITTY_DIR/themes" "$KITTY_DIR/kittens"
+mkdir -p "$KITTY_DIR/themes"
 
-# --- Sync themes/ and kittens/: per-file symlinks into pkgshare ---
+# --- Sync themes/: per-file symlinks into pkgshare ---
 sync_dir() {
   local subdir="$1"
   local src="$SCRIPT_DIR/$subdir"
@@ -109,11 +109,59 @@ sync_dir() {
   fi
 }
 
+# --- Sync kittens: kitty's `kitten <name>` only resolves *.py in the
+#     config dir root, not subfolders. Repo keeps them under kittens/
+#     for organization; setup symlinks each *.py to ~/.config/kitty/<name>.py.
+sync_kittens() {
+  local src="$SCRIPT_DIR/kittens"
+  [ -d "$src" ] || return 0
+
+  # Prune stale top-level *.py symlinks pointing into pkgshare/kittens
+  while IFS= read -r -d '' link; do
+    local target
+    target="$(readlink "$link")"
+    case "$target" in
+      "$src"/*)
+        if [ ! -e "$link" ]; then
+          echo "    prune stale kitten symlink: ${link#$KITTY_DIR/}"
+          rm "$link"
+        fi
+        ;;
+    esac
+  done < <(find "$KITTY_DIR" -maxdepth 1 -type l -name "*.py" -print0 2>/dev/null)
+
+  # Symlink each kitten *.py to the top-level config dir
+  for f in "$src"/*.py; do
+    [ -e "$f" ] || continue
+    local name dst
+    name="$(basename "$f")"
+    dst="$KITTY_DIR/$name"
+    if [ -L "$dst" ] || [ ! -e "$dst" ]; then
+      ln -sfn "$f" "$dst"
+    else
+      echo "WARNING: $dst exists as a real file; skipping kitten symlink"
+    fi
+  done
+
+  # Legacy cleanup: remove old kittens/ subdir symlinks from <= 0.0.5
+  if [ -d "$KITTY_DIR/kittens" ]; then
+    while IFS= read -r -d '' link; do
+      local target
+      target="$(readlink "$link")"
+      case "$target" in
+        "$SCRIPT_DIR"/kittens/*) rm "$link" ;;
+      esac
+    done < <(find "$KITTY_DIR/kittens" -maxdepth 1 -type l -print0 2>/dev/null)
+    # Remove the dir if it's now empty
+    rmdir "$KITTY_DIR/kittens" 2>/dev/null || true
+  fi
+}
+
 echo "==> Syncing themes/"
 sync_dir themes
 
-echo "==> Syncing kittens/"
-sync_dir kittens
+echo "==> Syncing kittens"
+sync_kittens
 
 # --- Manage BEGIN_KITTY_CONFIG block in kitty.conf ---
 manage_kitty_config_block() {

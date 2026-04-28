@@ -83,11 +83,21 @@ After `kitty-config-setup`, your config dir looks like:
 ~/.config/kitty/
 ├── kitty.conf            # yours, with our managed block at the top
 ├── current-theme.conf    # yours, seeded once on first install
+├── hello.py              → symlink → $pkgshare/kittens/hello.py
+├── (other shipped kittens, also at top level)
 ├── themes/
 │   ├── Japanesque.conf   → symlink → $pkgshare/themes/Japanesque.conf
 │   └── (your themes)
-└── kittens/
-    └── (your kittens)
+└── (your own kittens go directly here as *.py)
+```
+
+Kittens live at the top of `~/.config/kitty/` (not in a subfolder)
+because that's where kitty's resolver looks. Run any shipped kitten by
+its filename:
+
+```bash
+kitten hello              # runs hello.py
+kitten hello Iris         # passes args
 ```
 
 ## Customization

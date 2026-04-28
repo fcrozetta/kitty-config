@@ -56,8 +56,26 @@ remove_brew_symlinks() {
 echo "==> Cleaning themes/"
 remove_brew_symlinks "$KITTY_DIR/themes"
 
-echo "==> Cleaning kittens/"
-remove_brew_symlinks "$KITTY_DIR/kittens"
+# Top-level *.py symlinks (current kitten layout)
+echo "==> Cleaning top-level kitten symlinks"
+if [ -d "$KITTY_DIR" ]; then
+  while IFS= read -r -d '' link; do
+    target="$(readlink "$link")"
+    case "$target" in
+      */share/kitty-config/*)
+        echo "    remove: ${link#$HOME/}"
+        rm "$link"
+        ;;
+    esac
+  done < <(find "$KITTY_DIR" -maxdepth 1 -type l -name "*.py" -print0 2>/dev/null)
+fi
+
+# Legacy kittens/ subdir from <= 0.0.5
+if [ -d "$KITTY_DIR/kittens" ]; then
+  echo "==> Cleaning legacy kittens/ subdir"
+  remove_brew_symlinks "$KITTY_DIR/kittens"
+  rmdir "$KITTY_DIR/kittens" 2>/dev/null || true
+fi
 
 # --- Reload running kitty instances ---
 if pgrep -x kitty >/dev/null 2>&1; then
