@@ -11,6 +11,8 @@ CONFIG_BEGIN="# BEGIN_KITTY_CONFIG"
 CONFIG_END="# END_KITTY_CONFIG"
 THEME_BEGIN="# BEGIN_KITTY_THEME"
 THEME_END="# END_KITTY_THEME"
+SHELL_BEGIN="# BEGIN_KITTY_CONFIG_SHELL"
+SHELL_END="# END_KITTY_CONFIG_SHELL"
 
 echo "==> kitty-config setup"
 echo "    pkgshare:   $SCRIPT_DIR"
@@ -211,6 +213,38 @@ else
   echo "==> current-theme.conf already exists; leaving alone"
 fi
 
+# --- Manage BEGIN_KITTY_CONFIG_SHELL block in ~/.zshrc ---
+manage_zshrc_block() {
+  local zshrc="$HOME/.zshrc"
+  local block_content="${SHELL_BEGIN}
+source \"\$(brew --prefix)/share/kitty-config/shell-init.sh\"
+${SHELL_END}"
+
+  if [ ! -f "$zshrc" ]; then
+    echo "==> ~/.zshrc not found; skipping shell-init wiring"
+    echo "    If you use zsh, create ~/.zshrc and re-run kitty-config-setup."
+    echo "    bash users: add this line to ~/.bashrc manually:"
+    echo "      source \"\$(brew --prefix)/share/kitty-config/shell-init.sh\""
+    return 0
+  fi
+
+  if grep -qF "$SHELL_BEGIN" "$zshrc"; then
+    echo "==> Refreshing kitty-config shell block in ~/.zshrc"
+    awk -v begin="$SHELL_BEGIN" -v end="$SHELL_END" -v new="$block_content" '
+      $0 == begin { in_block = 1; print new; next }
+      in_block && $0 == end { in_block = 0; next }
+      !in_block { print }
+    ' "$zshrc" > "$zshrc.tmp" && mv "$zshrc.tmp" "$zshrc"
+  else
+    echo "==> Appending kitty-config shell block to ~/.zshrc"
+    {
+      printf '\n%s\n' "$block_content"
+    } >> "$zshrc"
+  fi
+}
+
+manage_zshrc_block
+
 # --- Reload running kitty instances (best effort) ---
 if pgrep -x kitty >/dev/null 2>&1; then
   echo "==> Reloading running kitty instances"
@@ -218,3 +252,6 @@ if pgrep -x kitty >/dev/null 2>&1; then
 fi
 
 echo "==> Done"
+echo
+echo "If you just installed kitty-config, open a new shell (or "
+echo "'source ~/.zshrc') so the kitten wrapper and completion load."

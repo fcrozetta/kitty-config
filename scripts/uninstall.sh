@@ -6,6 +6,8 @@ KITTY_CONF="$KITTY_DIR/kitty.conf"
 
 CONFIG_BEGIN="# BEGIN_KITTY_CONFIG"
 CONFIG_END="# END_KITTY_CONFIG"
+SHELL_BEGIN="# BEGIN_KITTY_CONFIG_SHELL"
+SHELL_END="# END_KITTY_CONFIG_SHELL"
 
 echo "==> kitty-config uninstall"
 
@@ -13,12 +15,13 @@ if [ "${KITTY_CONFIG_UNINSTALL_FORCE:-}" != "1" ] && [ -t 0 ]; then
   echo "This will:"
   echo "  - remove the BEGIN_KITTY_CONFIG block from $KITTY_CONF"
   echo "  - remove kitty-config-managed symlinks from themes/ and kittens/"
+  echo "  - remove the BEGIN_KITTY_CONFIG_SHELL block from ~/.zshrc"
   echo
   echo "It will NOT touch:"
   echo "  - your current-theme.conf"
   echo "  - your own files in themes/ or kittens/"
   echo "  - the BEGIN_KITTY_THEME block (kitten themes manages it)"
-  echo "  - any other content in kitty.conf"
+  echo "  - any other content in kitty.conf or ~/.zshrc"
   echo
   printf "Continue? [y/N] "
   read -r reply
@@ -75,6 +78,17 @@ if [ -d "$KITTY_DIR/kittens" ]; then
   echo "==> Cleaning legacy kittens/ subdir"
   remove_brew_symlinks "$KITTY_DIR/kittens"
   rmdir "$KITTY_DIR/kittens" 2>/dev/null || true
+fi
+
+# --- Strip BEGIN_KITTY_CONFIG_SHELL block from ~/.zshrc ---
+zshrc="$HOME/.zshrc"
+if [ -f "$zshrc" ] && grep -qF "$SHELL_BEGIN" "$zshrc"; then
+  echo "==> Removing kitty-config shell block from ~/.zshrc"
+  awk -v begin="$SHELL_BEGIN" -v end="$SHELL_END" '
+    $0 == begin { in_block = 1; next }
+    in_block && $0 == end { in_block = 0; next }
+    !in_block { print }
+  ' "$zshrc" > "$zshrc.tmp" && mv "$zshrc.tmp" "$zshrc"
 fi
 
 # --- Reload running kitty instances ---

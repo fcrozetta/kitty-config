@@ -92,13 +92,43 @@ After `kitty-config-setup`, your config dir looks like:
 ```
 
 Kittens live at the top of `~/.config/kitty/` (not in a subfolder)
-because that's where kitty's resolver looks. Run any shipped kitten by
-its filename:
+because that's where kitty's resolver looks. kitty natively requires
+the `.py` extension when invoking custom kittens (`kitten hello.py`),
+which is hidden by the shell-init layer (see below):
 
 ```bash
-kitten hello              # runs hello.py
+kitten hello              # via shell-init wrapper -> kitten hello.py
 kitten hello Iris         # passes args
 ```
+
+Inside `kitty.conf` keybinds, you must still use the full filename
+(shell wrappers don't apply there):
+
+```conf
+map kitty_mod+h kitten hello.py
+```
+
+## Shell integration
+
+`kitty-config-setup` adds a `BEGIN_KITTY_CONFIG_SHELL` block to your
+`~/.zshrc` that sources `shell-init.sh` from the formula's pkgshare.
+This provides:
+
+- A `kitten` function that auto-appends `.py` for custom kittens, so
+  `kitten hello` works without typing the extension.
+- Tab completion for the `kitten` command listing your custom kittens
+  + common built-ins (icat, themes, ssh, …).
+
+Open a new shell or `source ~/.zshrc` after install/upgrade for the
+wrapper and completion to load.
+
+If you use bash, add this line to `~/.bashrc` manually:
+
+```bash
+source "$(brew --prefix)/share/kitty-config/shell-init.sh"
+```
+
+fish is not supported by the shell-init (different syntax).
 
 ## Customization
 
