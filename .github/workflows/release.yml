@@ -1,0 +1,78 @@
+name: Release and bump Homebrew tap
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+
+  bump-tap:
+    needs: release
+    runs-on: ubuntu-latest
+    env:
+      TAP_REPO: fcrozetta/homebrew-tools
+      FORMULA_PATH: Formula/kitty-config.rb
+
+    steps:
+      - name: Resolve version
+        id: meta
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.ref_name }}"
+
+          TARBALL_URL="https://github.com/${{ github.repository }}/archive/refs/tags/${VERSION}.tar.gz"
+          SHA256="$(curl -fsSL -H "Authorization: token ${{ github.token }}" "${TARBALL_URL}" | sha256sum | cut -d' ' -f1)"
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "sha256=${SHA256}" >> "$GITHUB_OUTPUT"
+          echo "release_url=https://github.com/${{ github.repository }}/releases/tag/${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Generate formula
+        run: |
+          ./scripts/generate-formula.sh \
+            "${{ steps.meta.outputs.version }}" \
+            "${{ steps.meta.outputs.sha256 }}" \
+            "https://github.com/${{ github.repository }}" \
+            > /tmp/kitty-config.rb
+
+      - name: Checkout tap repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TAP_REPO }}
+          token: ${{ secrets.PAT_BREW_GITHUB_TOKEN }}
+          path: tap
+          fetch-depth: 0
+
+      - name: Update formula
+        run: cp /tmp/kitty-config.rb "tap/${FORMULA_PATH}"
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.PAT_BREW_GITHUB_TOKEN }}
+          path: tap
+          commit-message: "kitty-config: bump to ${{ steps.meta.outputs.version }}"
+          branch: "bump/kitty-config-${{ steps.meta.outputs.version }}"
+          title: "kitty-config: bump to ${{ steps.meta.outputs.version }}"
+          body: |
+            Automated bump from release.
+            - Version: `${{ steps.meta.outputs.version }}`
+            - SHA256: `${{ steps.meta.outputs.sha256 }}`
+            - Release: ${{ steps.meta.outputs.release_url }}

@@ -1,0 +1,2 @@
+cask:kitty
+cask:font-fira-code-nerd-font
