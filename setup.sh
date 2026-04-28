@@ -179,9 +179,11 @@ ${CONFIG_END}"
 
   if grep -qF "$CONFIG_BEGIN" "$KITTY_CONF"; then
     echo "==> Refreshing kitty-config block in kitty.conf"
-    # Replace lines from CONFIG_BEGIN through CONFIG_END with new block
-    awk -v begin="$CONFIG_BEGIN" -v end="$CONFIG_END" -v new="$block_content" '
-      $0 == begin { in_block = 1; print new; next }
+    # Replace lines from CONFIG_BEGIN through CONFIG_END with new block.
+    # Pass block_content via env (BSD awk's -v rejects literal newlines).
+    BLOCK_CONTENT="$block_content" \
+      awk -v begin="$CONFIG_BEGIN" -v end="$CONFIG_END" '
+      $0 == begin { in_block = 1; print ENVIRON["BLOCK_CONTENT"]; next }
       in_block && $0 == end { in_block = 0; next }
       !in_block { print }
     ' "$KITTY_CONF" > "$KITTY_CONF.tmp" && mv "$KITTY_CONF.tmp" "$KITTY_CONF"
@@ -230,8 +232,9 @@ ${SHELL_END}"
 
   if grep -qF "$SHELL_BEGIN" "$zshrc"; then
     echo "==> Refreshing kitty-config shell block in ~/.zshrc"
-    awk -v begin="$SHELL_BEGIN" -v end="$SHELL_END" -v new="$block_content" '
-      $0 == begin { in_block = 1; print new; next }
+    BLOCK_CONTENT="$block_content" \
+      awk -v begin="$SHELL_BEGIN" -v end="$SHELL_END" '
+      $0 == begin { in_block = 1; print ENVIRON["BLOCK_CONTENT"]; next }
       in_block && $0 == end { in_block = 0; next }
       !in_block { print }
     ' "$zshrc" > "$zshrc.tmp" && mv "$zshrc.tmp" "$zshrc"
