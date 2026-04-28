@@ -16,6 +16,31 @@ echo "==> kitty-config setup"
 echo "    pkgshare:   $SCRIPT_DIR"
 echo "    user dir:   $KITTY_DIR"
 
+# --- Detect a font already on the system regardless of install method ---
+# Translates a cask name like `font-fira-code-nerd-font` into the glob
+# `*fira*code*nerd*font*` and looks for any matching file in macOS font
+# dirs. Returns success if the font is present (manual install, Font
+# Book, brew under a different cask name, etc).
+font_already_present() {
+  local cask_name="$1"
+  case "$cask_name" in
+    font-*) ;;
+    *) return 1 ;;  # only font-* casks are checked this way
+  esac
+
+  local stripped="${cask_name#font-}"
+  local pattern="*$(echo "$stripped" | tr '-' '*')*"
+
+  local dir
+  for dir in "$HOME/Library/Fonts" "/Library/Fonts"; do
+    [ -d "$dir" ] || continue
+    if find "$dir" -maxdepth 1 -type f -iname "$pattern" 2>/dev/null | head -n 1 | grep -q .; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 # --- Install cask deps listed in deps/brew.txt ---
 install_casks() {
   local deps_file="$SCRIPT_DIR/deps/brew.txt"
@@ -34,14 +59,13 @@ install_casks() {
         local name="${pkg#cask:}"
         if brew list --cask --versions "$name" >/dev/null 2>&1; then
           echo "==> Cask already installed: $name"
+        elif font_already_present "$name"; then
+          echo "==> Font already on system (non-brew): $name — skipping install"
         else
           echo "==> Installing cask: $name"
           if ! brew install --cask "$name"; then
             echo "WARNING: brew install --cask $name failed."
-            echo "         If the font is already on your system (e.g. Font"
-            echo "         Book / manual install), this is harmless — kitty"
-            echo "         will use whatever is installed. Otherwise install"
-            echo "         it yourself and re-run kitty-config-setup."
+            echo "         (continuing — install or manage manually if needed)"
           fi
         fi
         ;;
