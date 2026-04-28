@@ -36,7 +36,13 @@ install_casks() {
           echo "==> Cask already installed: $name"
         else
           echo "==> Installing cask: $name"
-          brew install --cask "$name"
+          if ! brew install --cask "$name"; then
+            echo "WARNING: brew install --cask $name failed."
+            echo "         If the font is already on your system (e.g. Font"
+            echo "         Book / manual install), this is harmless — kitty"
+            echo "         will use whatever is installed. Otherwise install"
+            echo "         it yourself and re-run kitty-config-setup."
+          fi
         fi
         ;;
     esac
