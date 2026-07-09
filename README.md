@@ -84,7 +84,9 @@ After `kitty-config-setup`, your config dir looks like:
 ├── kitty.conf            # yours, with our managed block at the top
 ├── current-theme.conf    # yours, seeded once on first install
 ├── hello.py              → symlink → $pkgshare/kittens/hello.py
+├── alias.py              → symlink → $pkgshare/kittens/alias.py
 ├── (other shipped kittens, also at top level)
+├── aliases.zsh           # yours, created by `kitten alias`, never touched by setup
 ├── themes/
 │   ├── Japanesque.conf   → symlink → $pkgshare/themes/Japanesque.conf
 │   └── (your themes)
@@ -118,6 +120,23 @@ This provides:
   `kitten hello` works without typing the extension.
 - Tab completion for the `kitten` command listing your custom kittens
   + common built-ins (icat, themes, ssh, …).
+- Managed aliases: sources `~/.config/kitty/aliases.zsh` and re-sources
+  it after `kitten alias` changes it, so the current shell stays in sync.
+
+### Managed aliases (`kitten alias`)
+
+Keeps CLI-managed aliases in `~/.config/kitty/aliases.zsh`, separate from
+aliases you author in `~/.zshrc`:
+
+```bash
+kitten alias add gs 'git status -sb'   # create or overwrite (prints old value)
+kitten alias rm gs                     # remove
+kitten alias list                      # print managed alias lines
+```
+
+The file is user data: created on first `add`, never overwritten by
+`kitty-config-setup`. Only `alias` lines are managed — anything else you
+hand-add to the file is preserved.
 
 Open a new shell or `source ~/.zshrc` after install/upgrade for the
 wrapper and completion to load.

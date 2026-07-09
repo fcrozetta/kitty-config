@@ -19,6 +19,7 @@ if [ "${KITTY_CONFIG_UNINSTALL_FORCE:-}" != "1" ] && [ -t 0 ]; then
   echo
   echo "It will NOT touch:"
   echo "  - your current-theme.conf"
+  echo "  - your aliases.zsh (managed aliases are user data)"
   echo "  - your own files in themes/ or kittens/"
   echo "  - the BEGIN_KITTY_THEME block (kitten themes manages it)"
   echo "  - any other content in kitty.conf or ~/.zshrc"

@@ -7,10 +7,27 @@
 #     custom kittens shipped in ~/.config/kitty/. kitty's own resolver
 #     requires the .py extension; this swallows that wart at the CLI.
 #   - kitten command completion listing custom + common built-in kittens.
+#   - managed aliases: sources ~/.config/kitty/aliases.zsh (written by
+#     `kitten alias`) and re-sources it after add/rm so the current
+#     shell picks up changes — the kitten runs as a child process and
+#     cannot mutate this shell itself.
+
+# --- Managed aliases (kitten alias) ---
+[ -r "$HOME/.config/kitty/aliases.zsh" ] && . "$HOME/.config/kitty/aliases.zsh"
 
 # --- Wrapper ---
 kitten() {
-  if [[ $# -ge 1 && "$1" != *.py && "$1" != */* ]] \
+  if [[ "$1" == "alias" && -e "$HOME/.config/kitty/alias.py" ]]; then
+    command kitten alias.py "${@:2}" || return $?
+    # Apply to the current shell: unalias on rm, then re-source.
+    if [[ "$2" == "rm" && -n "${3:-}" ]]; then
+      unalias "$3" 2>/dev/null
+    fi
+    if [ -r "$HOME/.config/kitty/aliases.zsh" ]; then
+      . "$HOME/.config/kitty/aliases.zsh"
+    fi
+    return 0
+  elif [[ $# -ge 1 && "$1" != *.py && "$1" != */* ]] \
      && [[ -e "$HOME/.config/kitty/$1.py" ]]; then
     local first="$1"
     shift
