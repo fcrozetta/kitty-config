@@ -85,6 +85,7 @@ After `kitty-config-setup`, your config dir looks like:
 ├── current-theme.conf    # yours, seeded once on first install
 ├── hello.py              → symlink → $pkgshare/kittens/hello.py
 ├── alias.py              → symlink → $pkgshare/kittens/alias.py
+├── sophie.py             → symlink → $pkgshare/kittens/sophie.py
 ├── (other shipped kittens, also at top level)
 ├── aliases.zsh           # yours, created by `kitten alias`, never touched by setup
 ├── themes/
@@ -122,6 +123,8 @@ This provides:
   + common built-ins (icat, themes, ssh, …).
 - Managed aliases: sources `~/.config/kitty/aliases.zsh` and re-sources
   it after `kitten alias` changes it, so the current shell stays in sync.
+- A `sophie` function that shadows any `sophie` on `PATH` and routes to
+  the sophie kitten (see below).
 
 ### Managed aliases (`kitten alias`)
 
@@ -137,6 +140,42 @@ kitten alias list                      # print managed alias lines
 The file is user data: created on first `add`, never overwritten by
 `kitty-config-setup`. Only `alias` lines are managed — anything else you
 hand-add to the file is preserved.
+
+### `sophie` — agent backend dispatch
+
+Routes the `sophie` agent to one of two backend CLIs:
+
+```bash
+sophie --claude              # claude --agent sophie
+sophie --hermes              # hermes -p sophie
+sophie                       # $SOPHIE_DEFAULT, else claude
+sophie --claude -p 'status'  # extra args forward verbatim
+```
+
+The `sophie()` function in `shell-init.sh` deliberately shadows any
+`sophie` on `PATH` — a kitten cannot claim a bare command name on its
+own. That shadowing only applies to shells that source `shell-init.sh`:
+**scripts and non-interactive shells still get whatever `sophie` is on
+`PATH`.**
+
+Set the no-argument default with `SOPHIE_DEFAULT=claude` or
+`SOPHIE_DEFAULT=hermes`; unset means `claude`. An unrecognised value is
+an error rather than a silent fallback, so a typo is loud.
+
+The backend selector is recognised **only as the first argument**, so a
+prompt may mention either backend by name without being misrouted. The
+selector is stripped and everything after it passes through untouched —
+this kitten does not translate between the two CLIs, and they differ:
+`claude 'hi'` is a prompt, while `hermes -p sophie 'hi'` reads `hi` as a
+subcommand and fails. Use `sophie --hermes -z 'hi'` for a Hermes
+one-shot.
+
+> [!WARNING]
+> Invoke it as `kitty +kitten sophie.py …`, never `kitten sophie.py …`.
+> The standalone `kitten` launcher scans every argument for a builtin
+> kitten name or unique abbreviation and hands the run to that kitten
+> instead — `kitten sophie.py -p hi` runs `hints`, and `-p ssh` runs
+> `ssh`. The `sophie()` function already does this correctly.
 
 Open a new shell or `source ~/.zshrc` after install/upgrade for the
 wrapper and completion to load.

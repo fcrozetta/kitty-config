@@ -11,6 +11,9 @@
 #     `kitten alias`) and re-sources it after add/rm so the current
 #     shell picks up changes — the kitten runs as a child process and
 #     cannot mutate this shell itself.
+#   - sophie() front-end for the sophie kitten, which deliberately
+#     shadows any `sophie` on PATH. A kitten cannot claim a bare command
+#     name on its own; only a function or a PATH entry can.
 
 # --- Managed aliases (kitten alias) ---
 [ -r "$HOME/.config/kitty/aliases.zsh" ] && . "$HOME/.config/kitty/aliases.zsh"
@@ -35,6 +38,29 @@ kitten() {
   else
     command kitten "$@"
   fi
+}
+
+# --- sophie: shadow any PATH `sophie` with the sophie kitten ---
+# Runs as a child (not exec) so it cannot replace this shell. The kitten
+# then execs the backend, so the backend owns the tty directly.
+#
+# Uses `kitty +kitten`, NOT the standalone `kitten` launcher: `kitten`
+# scans every argument for a builtin kitten name or unique abbreviation
+# and hands the run to that kitten instead, so `kitten sophie.py -p hi`
+# runs `hints` and `-p ssh` runs ssh. `kitty +kitten` parses correctly.
+sophie() {
+  if [ ! -e "$HOME/.config/kitty/sophie.py" ]; then
+    printf 'sophie: kitten not installed; run kitty-config-setup\n' >&2
+    return 1
+  fi
+  local kitty_bin
+  kitty_bin="$(command -v kitty)"
+  [ -n "$kitty_bin" ] || kitty_bin="/Applications/kitty.app/Contents/MacOS/kitty"
+  if [ ! -x "$kitty_bin" ]; then
+    printf 'sophie: kitty not found on PATH\n' >&2
+    return 1
+  fi
+  "$kitty_bin" +kitten sophie.py "$@"
 }
 
 # --- Helper: list custom + built-in kitten names for completion ---
